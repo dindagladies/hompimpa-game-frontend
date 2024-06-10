@@ -1,5 +1,6 @@
 import next, { GetServerSideProps, GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
 import Layout from "../../components/layout";
+import Link from "next/link";
 
 // TODO:
 /*
@@ -44,16 +45,23 @@ export const getServerSideProps = (async (
 	const nextRes = await fetch("http://127.0.0.1:4000/api/game/"+ code +"?round=next");
 	const nextData: ApiNextRoundResponse = await nextRes.json();
 
+
 	return {
-    props: {result, nextData},
+    props: {result, nextData, code},
   };
 }) satisfies GetServerSideProps<{ result: ApiCountResponse, nextData: ApiNextRoundResponse }>;
 
 export default function Result({
+  code,
 	result,
 	nextData,
 }: InferGetServerSidePropsType<typeof getServerSideProps> & { result: ApiCountResponse, nextData: ApiNextRoundResponse
 }) {
+  const playerId = localStorage.getItem("player_id");
+  const isPlayerContinueTheGame = (nextData.data.find((item) => item.player.id == Number(playerId))) != undefined;
+  console.log(isPlayerContinueTheGame);
+  console.log(playerId);
+
   return (
     <Layout>
       <h1>The winner is {result?.winner}</h1>
@@ -61,7 +69,8 @@ export default function Result({
 			{nextData?.data?.map((item) => (
 				<p>{item.player.username}</p>
 			))}
-      Next Round will start in 5 seconds ...
+      <p>Next Round will start in 5 seconds ...</p>
+      {isPlayerContinueTheGame ? <Link href={"/game?code="+ code}>Next</Link> : <p>Game over</p>}
     </Layout>
   );
 }

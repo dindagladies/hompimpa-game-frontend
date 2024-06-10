@@ -6,8 +6,6 @@ import {
   GetServerSidePropsContext,
   InferGetServerSidePropsType,
 } from "next";
-import { useParams, useSearchParams } from "next/navigation";
-import { useRouter } from "next/router";
 
 interface Game {
   id: number;
