@@ -1,15 +1,67 @@
+import next, { GetServerSideProps, GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
 import Layout from "../../components/layout";
 
-export default function Result() {
-    return (
-        <Layout>
-            <h1>The winner is Light</h1>
+// TODO:
+/*
+1. check if all player already submit a vote
+2. count the vote
+3. show in this
+*/
 
-            Next Player :
-            <p>Player 1</p>
-            <p>Player 2</p>
+type ApiCountResponse = {
+  continue_round: true
+  message: string
+  next_game_type: number
+  vote_result: []
+  winner: string
+};
 
-            Next Round will start in 5 seconds ...
-        </Layout>
-    );
+interface Game {
+  id: number;
+  code: string;
+  round: number;
+  player_id: number;
+  player : {
+    id: number;
+    username: string;
+  },
+  game_type_id: number;
+  hand_choice: string;
+  created_at: string;
+}
+
+type ApiNextRoundResponse = {
+	data : Game[]
+}
+
+export const getServerSideProps = (async (
+  context: GetServerSidePropsContext
+) => {
+	const code = context.query.code;
+  const countRes = await fetch("http://127.0.0.1.:4000/api/count/"+ code);
+  const result: ApiCountResponse = await countRes.json();
+
+	const nextRes = await fetch("http://127.0.0.1:4000/api/game/"+ code +"?round=next");
+	const nextData: ApiNextRoundResponse = await nextRes.json();
+
+	return {
+    props: {result, nextData},
+  };
+}) satisfies GetServerSideProps<{ result: ApiCountResponse, nextData: ApiNextRoundResponse }>;
+
+export default function Result({
+	result,
+	nextData,
+}: InferGetServerSidePropsType<typeof getServerSideProps> & { result: ApiCountResponse, nextData: ApiNextRoundResponse
+}) {
+  return (
+    <Layout>
+      <h1>The winner is {result?.winner}</h1>
+      <p>Next Player :</p>
+			{nextData?.data?.map((item) => (
+				<p>{item.player.username}</p>
+			))}
+      Next Round will start in 5 seconds ...
+    </Layout>
+  );
 }
