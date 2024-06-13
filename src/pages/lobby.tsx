@@ -6,19 +6,14 @@ import {
   GetServerSidePropsContext,
   InferGetServerSidePropsType,
 } from "next";
+import { useEffect, useState } from "react";
 
 interface Game {
-  id: number;
   code: string;
-  round: number;
-  player_id: number;
-  player : {
+  player: {
     id: number;
     username: string;
-  },
-  game_type_id: number;
-  hand_choice: string;
-  created_at: string;
+  };
 }
 
 type ApiGameResponse = {
@@ -33,7 +28,7 @@ export const getServerSideProps = (async (
     "http://127.0.0.1:4000/api/game/" + context.query.code
   );
   const datas: ApiGameResponse = await res.json();
-  console.log(datas.data);
+
   return {
     props: { datas },
   };
@@ -42,6 +37,36 @@ export const getServerSideProps = (async (
 export default function Lobby({
   datas,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+  const [dataPlayers, setData] = useState(datas.data);
+
+  useEffect(() => {
+    const playerId = localStorage.getItem("player_id");
+    const username = localStorage.getItem("username");
+    const newWS = new WebSocket("ws://127.0.0.1:4000/ws");
+    newWS.onerror = (err) => console.log(err);
+    newWS.onopen = () => {
+      newWS.send(
+        JSON.stringify({
+          code: datas.data[0].code,
+          player_id: Number(playerId),
+          player: { id: Number(playerId), username: username },
+        })
+      );
+    };
+    newWS.onmessage = (msg) => {
+      // if datas.data[0].code == msg.data {
+      const message = JSON.parse(msg.data);
+      if (message.player.id !== Number(playerId)) {
+        setData([...dataPlayers, message]);
+      }
+      // }
+    };
+
+    return () => {
+      newWS.close();
+    };
+  }, []);
+
   return (
     <Layout>
       <Head>
@@ -49,7 +74,7 @@ export default function Lobby({
       </Head>
       <h1>Hompimpa Game</h1>
       <p>Room Code : {datas?.data[0]?.code}</p>
-      {datas.data?.map((item) => (
+      {dataPlayers.map((item) => (
         <p>{item.player.username}</p>
       ))}
       <p className="{styles.button-start}">

@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Layout from "../../components/layout";
-import { FormEvent } from "react";
+import { FormEvent, useEffect } from "react";
 import { useRouter } from "next/router";
 
 export default function Index() {
@@ -22,6 +22,7 @@ export default function Index() {
 
     const data = await response.json();
     localStorage.setItem('player_id', data.data.id)
+    localStorage.setItem('username', data.data.username)
 
     router.push('/menu')
   }
