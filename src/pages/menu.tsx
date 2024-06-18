@@ -1,12 +1,32 @@
-import Link from "next/link";
 import Layout from "../../components/layout";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import {
+  GetServerSideProps,
+  GetServerSidePropsContext,
+} from "next";
+import { useEffect, useState } from "react";
+
+type Player = {
+  data: {
+    id: number;
+    username: string;
+  };
+};
 
 export default function Menu() {
   const router = useRouter();
-  // TODO: set get localstorage in client side
-  const playerId = localStorage.getItem("player_id");
+  const [player, setPlayer] = useState({ id: 0, username: "" });
+
+  useEffect(() => {
+    async function fetchPlayer() {
+      const res = await fetch("http://127.0.0.1:4000/api/player", {
+        credentials: "include",
+      });
+      const data = await res.json();
+      setPlayer(data);
+    }
+    fetchPlayer();
+  }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -18,7 +38,7 @@ export default function Menu() {
       },
       body: JSON.stringify({
         code: formData.get("code"),
-        player_id: Number(playerId),
+        player_id: Number(player.id),
       }),
     });
 
@@ -42,7 +62,7 @@ export default function Menu() {
         },
         body: JSON.stringify({
           code: code,
-          player_id: Number(playerId),
+          player_id: Number(player.id),
         }),
       });
 
@@ -53,6 +73,7 @@ export default function Menu() {
 
   return (
     <Layout>
+      <p>Welcome, {player.username}!</p>
       <form onSubmit={onSubmit}>
         <input type="text" name="code" placeholder="Enter code game" />
         <button type="submit">Join</button>
