@@ -22,8 +22,8 @@ export default function Index() {
     })
 
     const data = await response.json();
-    localStorage.setItem('player_id', data.data.id)
-    localStorage.setItem('username', data.data.username)
+    // localStorage.setItem('player_id', data.data.id)
+    // localStorage.setItem('username', data.data.username)
 
     router.push('/menu')
   }

@@ -38,34 +38,66 @@ export default function Lobby({
   datas,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [dataPlayers, setData] = useState(datas.data);
+  const [playerLogin, setPlayerLogin] = useState({ id: 0, username: "" });
 
   useEffect(() => {
-    const playerId = localStorage.getItem("player_id");
-    const username = localStorage.getItem("username");
-    const newWS = new WebSocket("ws://127.0.0.1:4000/ws");
-    newWS.onerror = (err) => console.log(err);
-    newWS.onopen = () => {
-      newWS.send(
-        JSON.stringify({
-          code: datas.data[0].code,
-          player_id: Number(playerId),
-          player: { id: Number(playerId), username: username },
-        })
-      );
-    };
-    newWS.onmessage = (msg) => {
-      // if datas.data[0].code == msg.data {
-      const message = JSON.parse(msg.data);
-      if (message.player.id !== Number(playerId)) {
-        setData([...dataPlayers, message]);
-      }
-      // }
-    };
+    // const playerId = localStorage.getItem("player_id");
+    // const username = localStorage.getItem("username");
 
-    return () => {
-      newWS.close();
+    async function fetchPlayer() {
+      const res = await fetch("http://127.0.0.1:4000/api/player", {
+        credentials: "include",
+      });
+      const data = await res.json();
+      // console.log("data player : ", data);
+      // TODO: fix failed to set
+      setPlayerLogin(data);
+
     };
+    
+    fetchPlayer();
+    // console.log("player : ", playerLogin);
   }, []);
+
+  useEffect(() => {
+    console.log("playerLogin : ", playerLogin);
+    if (playerLogin.id !== 0 && playerLogin.username !== "") {
+      const newWS = new WebSocket("ws://127.0.0.1:4000/ws");
+      newWS.onerror = (err) => console.log(err);
+      newWS.onopen = () => {
+        console.log(
+          "connected player : ",
+          playerLogin.id + " " + playerLogin.username
+        );
+        newWS.send(
+          JSON.stringify({
+            code: datas.data[0].code,
+            player_id: Number(playerLogin.id),
+            player: {
+              id: Number(playerLogin.id),
+              username: playerLogin.username,
+            },
+          })
+        );
+      };
+      newWS.onmessage = (msg) => {
+        // TODO: filter lobby base on code game player
+        // if datas.data[0].code == msg.data {
+        const message = JSON.parse(msg.data);
+        console.log("message from ws : ", message);
+        if (message.player.id !== Number(playerLogin.id)) {
+          setData(prevDataPlayers => [...prevDataPlayers, message]);
+        }
+        // }
+      };
+
+      return () => {
+        newWS.close();
+      };
+    }
+  }, [playerLogin]);
+
+  // console.log("dataPlayers Outside : ", dataPlayers);
 
   return (
     <Layout>
@@ -73,6 +105,7 @@ export default function Lobby({
         <title>Hompimpa Game</title>
       </Head>
       <h1>Hompimpa Game</h1>
+      <p>Welcome, {playerLogin.username} !</p>
       <p>Room Code : {datas?.data[0]?.code}</p>
       {dataPlayers.map((item) => (
         <p>{item.player.username}</p>
