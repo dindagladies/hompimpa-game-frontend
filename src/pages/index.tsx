@@ -1,31 +1,33 @@
 import Head from "next/head";
 import Layout from "../../components/layout";
-import { FormEvent, useEffect } from "react";
+import { FormEvent } from "react";
 import { useRouter } from "next/router";
 
 export default function Index() {
-  const router = useRouter()
+  const router = useRouter();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
     const response = await fetch("http://127.0.0.1:4000/api/player", {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        username: formData.get('username')
+        username: formData.get("username"),
       }),
       credentials: "include",
-    })
+    });
 
     const data = await response.json();
-    // localStorage.setItem('player_id', data.data.id)
-    // localStorage.setItem('username', data.data.username)
+    if (!response.ok) {
+      alert(data.message);
+      return;
+    }
 
-    router.push('/menu')
+    router.push("/menu");
   }
 
   return (

@@ -7,6 +7,7 @@ import {
   InferGetServerSidePropsType,
 } from "next";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 
 interface Game {
   code: string;
@@ -39,28 +40,25 @@ export default function Lobby({
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [dataPlayers, setData] = useState(datas.data);
   const [playerLogin, setPlayerLogin] = useState({ id: 0, username: "" });
+  const router = useRouter();
 
   useEffect(() => {
-    // const playerId = localStorage.getItem("player_id");
-    // const username = localStorage.getItem("username");
-
     async function fetchPlayer() {
       const res = await fetch("http://127.0.0.1:4000/api/player", {
         credentials: "include",
       });
       const data = await res.json();
-      // console.log("data player : ", data);
-      // TODO: fix failed to set
       setPlayerLogin(data);
+    }
 
-    };
-    
     fetchPlayer();
-    // console.log("player : ", playerLogin);
   }, []);
 
   useEffect(() => {
-    console.log("playerLogin : ", playerLogin);
+    if (playerLogin.id !== 0 || datas.data.length === 0) {
+      router.push("/");
+    }
+
     if (playerLogin.id !== 0 && playerLogin.username !== "") {
       const newWS = new WebSocket("ws://127.0.0.1:4000/ws");
       newWS.onerror = (err) => console.log(err);
@@ -86,7 +84,7 @@ export default function Lobby({
         const message = JSON.parse(msg.data);
         console.log("message from ws : ", message);
         if (message.player.id !== Number(playerLogin.id)) {
-          setData(prevDataPlayers => [...prevDataPlayers, message]);
+          setData((prevDataPlayers) => [...prevDataPlayers, message]);
         }
         // }
       };
@@ -96,8 +94,6 @@ export default function Lobby({
       };
     }
   }, [playerLogin]);
-
-  // console.log("dataPlayers Outside : ", dataPlayers);
 
   return (
     <Layout>

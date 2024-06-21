@@ -1,9 +1,5 @@
 import Layout from "../../components/layout";
 import { useRouter } from "next/router";
-import {
-  GetServerSideProps,
-  GetServerSidePropsContext,
-} from "next";
 import { useEffect, useState } from "react";
 
 type Player = {
@@ -27,6 +23,12 @@ export default function Menu() {
     }
     fetchPlayer();
   }, []);
+
+  useEffect(() => {
+    if (player.id !== 0) {
+      router.push("/");
+    }
+  }, [player]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
