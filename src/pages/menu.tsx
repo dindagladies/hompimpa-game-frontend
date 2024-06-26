@@ -2,33 +2,27 @@ import Layout from "../../components/layout";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
-type Player = {
-  data: {
-    id: number;
-    username: string;
-  };
-};
-
 export default function Menu() {
   const router = useRouter();
   const [player, setPlayer] = useState({ id: 0, username: "" });
 
   useEffect(() => {
-    async function fetchPlayer() {
+    async function checkLoginPlayer() {
       const res = await fetch("http://127.0.0.1:4000/api/player", {
         credentials: "include",
       });
-      const data = await res.json();
-      setPlayer(data);
-    }
-    fetchPlayer();
-  }, []);
 
-  useEffect(() => {
-    if (player.id !== 0) {
-      router.push("/");
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message);
+        router.push("/");
+      } else {
+        setPlayer(data);
+      }
     }
-  }, [player]);
+
+    checkLoginPlayer();
+  }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -52,6 +46,7 @@ export default function Menu() {
   async function createGameCode() {
     const res = await fetch("http://127.0.0.1:4000/api/code", {
       method: "POST",
+      credentials: "include",
     });
     const data = await res.json();
     const code = data.data.code;
@@ -59,6 +54,7 @@ export default function Menu() {
     if (code !== "") {
       const response = await fetch("http://127.0.0.1:4000/api/start", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -69,7 +65,23 @@ export default function Menu() {
       });
 
       const data = await response.json();
+      console.log("continue to lobby with code : ", data.data.code);
       router.push("/lobby?code=" + data.data.code);
+    }
+  }
+
+  async function logout() {
+    const res = await fetch("http://127.0.0.1:4000/api/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    console.log(res);
+    if (res.ok) {
+      router.push("/");
+    } else {
+      const data = await res.json();
+      alert(data.message);
     }
   }
 
@@ -80,7 +92,8 @@ export default function Menu() {
         <input type="text" name="code" placeholder="Enter code game" />
         <button type="submit">Join</button>
       </form>
-      <button onClick={createGameCode}>Create New Room</button>
+      <button onClick={createGameCode}>Create New Room</button>&nbsp;
+      <button onClick={logout}>Logout</button>
     </Layout>
   );
 }

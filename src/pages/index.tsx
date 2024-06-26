@@ -1,10 +1,24 @@
 import Head from "next/head";
 import Layout from "../../components/layout";
-import { FormEvent } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
 export default function Index() {
   const router = useRouter();
+
+  useEffect(() => {
+    async function checkLoginPlayer() {
+      const response = await fetch("http://127.0.0.1:4000/api/player", {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        router.push("/menu");
+      }
+    }
+
+    checkLoginPlayer();
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

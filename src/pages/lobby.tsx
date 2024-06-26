@@ -22,43 +22,53 @@ type ApiGameResponse = {
   message: string;
 };
 
-export const getServerSideProps = (async (
-  context: GetServerSidePropsContext
-) => {
-  const res = await fetch(
-    "http://127.0.0.1:4000/api/game/" + context.query.code
-  );
-  const datas: ApiGameResponse = await res.json();
-
-  return {
-    props: { datas },
-  };
-}) satisfies GetServerSideProps<{ datas: ApiGameResponse }>;
-
-export default function Lobby({
-  datas,
-}: InferGetServerSidePropsType<typeof getServerSideProps>) {
-  const [dataPlayers, setData] = useState(datas.data);
+export default function Lobby() {
+  const [dataPlayers, setData] = useState<Game[]>([]);
   const [playerLogin, setPlayerLogin] = useState({ id: 0, username: "" });
   const router = useRouter();
+  const code = router.query.code;
 
   useEffect(() => {
-    async function fetchPlayer() {
+    async function checkLoginPlayer() {
       const res = await fetch("http://127.0.0.1:4000/api/player", {
         credentials: "include",
       });
       const data = await res.json();
-      setPlayerLogin(data);
+      if (!res.ok) {
+        alert(data.message);
+        router.push("/");
+      } else {
+        setPlayerLogin(data);
+      }
+    }
+    checkLoginPlayer();
+
+    async function getPlayerOnGame() {
+      const res = await fetch("http://127.0.0.1:4000/api/game/" + code, {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message);
+        router.push("/menu");
+      } else {
+        setData(data.data);
+      }
     }
 
-    fetchPlayer();
-  }, []);
+    getPlayerOnGame();
+  }, [code]);
 
   useEffect(() => {
-    if (playerLogin.id !== 0 || datas.data.length === 0) {
-      router.push("/");
-    }
+    // exit game when player close tab
+    // TODO: don't do this when refresh page
+    // window.onbeforeunload = function () {
+    //   exitGame();
+    // };
+  }, [dataPlayers]);
 
+  useEffect(() => {
     if (playerLogin.id !== 0 && playerLogin.username !== "") {
       const newWS = new WebSocket("ws://127.0.0.1:4000/ws");
       newWS.onerror = (err) => console.log(err);
@@ -69,7 +79,7 @@ export default function Lobby({
         );
         newWS.send(
           JSON.stringify({
-            code: datas.data[0].code,
+            code: code,
             player_id: Number(playerLogin.id),
             player: {
               id: Number(playerLogin.id),
@@ -79,21 +89,67 @@ export default function Lobby({
         );
       };
       newWS.onmessage = (msg) => {
-        // TODO: filter lobby base on code game player
-        // if datas.data[0].code == msg.data {
         const message = JSON.parse(msg.data);
         console.log("message from ws : ", message);
         if (message.player.id !== Number(playerLogin.id)) {
-          setData((prevDataPlayers) => [...prevDataPlayers, message]);
+          if (message.action === "exit") {
+            setData((prevDataPlayers) =>
+              prevDataPlayers.filter(
+                (item) => item.player.id !== message.player.id
+              )
+            );
+          } else {
+            setData((prevDataPlayers) => [...prevDataPlayers, message]);
+          }
         }
-        // }
       };
 
       return () => {
         newWS.close();
       };
     }
-  }, [playerLogin]);
+  }, [playerLogin, code]);
+
+  async function exitGame() {
+    const res = await fetch("http://127.0.0.1:4000/api/exit/" + code, {
+      method: "POST",
+      credentials: "include",
+      keepalive: true,
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      // TODO: send message to ws
+      const newWS = new WebSocket("ws://127.0.0.1:4000/ws");
+      newWS.onerror = (err) => console.log(err);
+      newWS.onopen = () => {
+        console.log(
+          "exit player : ",
+          playerLogin.id + " " + playerLogin.username
+        );
+        newWS.send(
+          JSON.stringify({
+            code: code,
+            player_id: Number(playerLogin.id),
+            player: {
+              id: Number(playerLogin.id),
+              username: playerLogin.username,
+            },
+            action: "exit",
+          })
+        );
+      };
+      return () => {
+        // TODO: check this
+        newWS.close();
+        router.push("/menu");
+      };
+    } else {
+      alert(data.message);
+      return ;
+    }
+  }
 
   return (
     <Layout>
@@ -102,13 +158,14 @@ export default function Lobby({
       </Head>
       <h1>Hompimpa Game</h1>
       <p>Welcome, {playerLogin.username} !</p>
-      <p>Room Code : {datas?.data[0]?.code}</p>
-      {dataPlayers.map((item) => (
+      <p>Room Code : {code}</p>
+      {dataPlayers?.map((item) => (
         <p>{item.player.username}</p>
       ))}
       <p className="{styles.button-start}">
-        <Link href={"game?code=" + datas.data[0].code}>Start Now</Link>
+        <Link href={"game?code=" + code}>Start Now</Link>
       </p>
+      <button onClick={exitGame}>Exit room</button>
     </Layout>
   );
 }
