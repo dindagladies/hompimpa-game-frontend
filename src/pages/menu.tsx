@@ -39,8 +39,13 @@ export default function Menu() {
     });
 
     const data = await response.json();
-    const code = data.data.code;
-    router.push("/lobby?code=" + code);
+    if (!response.ok) {
+      alert(data.message);
+      return;
+    } else {
+      const code = data.data.code;
+      router.push("/lobby?code=" + code);
+    }
   }
 
   async function createGameCode() {
@@ -49,6 +54,11 @@ export default function Menu() {
       credentials: "include",
     });
     const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message);
+      return;
+    }
     const code = data.data.code;
 
     if (code !== "") {
