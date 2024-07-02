@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Layout from "../../components/layout";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -23,7 +22,7 @@ export default function Game({
 
   useEffect(() => {
     async function checkLoginPlayer() {
-      const res = await fetch("http://127.0.0.1:4000/api/player", {
+      const res = await fetch(process.env.API_URL + "/player", {
         credentials: "include",
       });
       const data = await res.json();
@@ -37,7 +36,7 @@ export default function Game({
     checkLoginPlayer();
 
     async function gameInfo() {
-      const res = await fetch("http://127.0.0.1:4000/api/game/info/" + code, {
+      const res = await fetch(process.env.API_URL + "/game/info/" + code, {
         credentials: "include",
       });
       const data = await res.json();
@@ -66,15 +65,16 @@ export default function Game({
         setCountdown(count);
         if (count <= 0) {
           setCountdown(0);
+          router.push("/waiting-room?code=" + code);
         }
       }
     }, 1000);
-    // return () => clearInterval(interval);
-  }, [countdown, start]);
+    return () => clearInterval(interval);
+  }, [countdown, start, router, code]);
 
   async function insertVote(hand_choice: string) {
     const response = await fetch(
-      "http://127.0.0.1:4000/api/vote/" + code + "/" + playerLogin.id,
+      process.env.API_URL + "/vote/" + code + "/" + playerLogin.id,
       {
         method: "POST",
         headers: {
@@ -88,6 +88,10 @@ export default function Game({
     );
 
     const data = await response.json();
+    if (!response.ok) {
+      alert(data.message);
+      return;
+    }
     router.push("/waiting-room?code=" + code);
   }
 

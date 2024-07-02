@@ -8,7 +8,7 @@ export default function Menu() {
 
   useEffect(() => {
     async function checkLoginPlayer() {
-      const res = await fetch("http://127.0.0.1:4000/api/player", {
+      const res = await fetch(process.env.API_URL + "/player", {
         credentials: "include",
       });
 
@@ -27,7 +27,7 @@ export default function Menu() {
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const response = await fetch("http://127.0.0.1:4000/api/start", {
+    const response = await fetch(process.env.API_URL + "/start", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -49,7 +49,7 @@ export default function Menu() {
   }
 
   async function createGameCode() {
-    const res = await fetch("http://127.0.0.1:4000/api/code", {
+    const res = await fetch(process.env.API_URL + "/code", {
       method: "POST",
       credentials: "include",
     });
@@ -62,7 +62,7 @@ export default function Menu() {
     const code = data.data.code;
 
     if (code !== "") {
-      const response = await fetch("http://127.0.0.1:4000/api/start", {
+      const response = await fetch(process.env.API_URL + "/start", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -81,7 +81,7 @@ export default function Menu() {
   }
 
   async function logout() {
-    const res = await fetch("http://127.0.0.1:4000/api/logout", {
+    const res = await fetch(process.env.API_URL + "/logout", {
       method: "POST",
       credentials: "include",
     });

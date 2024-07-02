@@ -42,7 +42,7 @@ export const getServerSideProps = (async (
   const countRes = await fetch("http://127.0.0.1.:4000/api/count/"+ code);
   const result: ApiCountResponse = await countRes.json();
 
-	const nextRes = await fetch("http://127.0.0.1:4000/api/game/"+ code +"?round=next");
+	const nextRes = await fetch(process.env.API_URL + "/game/"+ code +"?round=next");
 	const nextData: ApiNextRoundResponse = await nextRes.json();
 
 

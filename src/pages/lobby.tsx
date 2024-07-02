@@ -22,7 +22,7 @@ export default function Lobby() {
 
   useEffect(() => {
     async function checkLoginPlayer() {
-      const res = await fetch("http://127.0.0.1:4000/api/player", {
+      const res = await fetch(process.env.API_URL + "/player", {
         credentials: "include",
       });
       const data = await res.json();
@@ -36,7 +36,7 @@ export default function Lobby() {
     checkLoginPlayer();
 
     async function getPlayerOnGame() {
-      const res = await fetch("http://127.0.0.1:4000/api/game/" + code, {
+      const res = await fetch(process.env.API_URL + "/game/" + code, {
         credentials: "include",
       });
 
@@ -51,7 +51,7 @@ export default function Lobby() {
     getPlayerOnGame();
 
     async function getGameHost() {
-      const res = await fetch("http://127.0.0.1:4000/api/game/info/" + code, {
+      const res = await fetch(process.env.API_URL + "/game/info/" + code, {
         credentials: "include",
       });
 
@@ -126,7 +126,7 @@ export default function Lobby() {
   }, [playerLogin, code, router]);
 
   async function exitGame() {
-    const res = await fetch("http://127.0.0.1:4000/api/exit/" + code, {
+    const res = await fetch(process.env.API_URL + "/exit/" + code, {
       method: "POST",
       credentials: "include",
       keepalive: true,
@@ -155,7 +155,7 @@ export default function Lobby() {
 
   async function startGame() {
     // TODO: update started_at in game table
-    const res = await fetch("http://127.0.0.1:4000/api/game/info/" + code, {
+    const res = await fetch(process.env.API_URL + "/game/info/" + code, {
       method: "POST",
     });
 

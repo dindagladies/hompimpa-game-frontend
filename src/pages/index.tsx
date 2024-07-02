@@ -8,7 +8,7 @@ export default function Index() {
 
   useEffect(() => {
     async function checkLoginPlayer() {
-      const response = await fetch("http://127.0.0.1:4000/api/player", {
+      const response = await fetch(process.env.API_URL + "/player", {
         credentials: "include",
       });
 
@@ -18,13 +18,13 @@ export default function Index() {
     }
 
     checkLoginPlayer();
-  }, []);
+  }, [router]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
-    const response = await fetch("http://127.0.0.1:4000/api/player", {
+    const response = await fetch(process.env.API_URL + "/player", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
