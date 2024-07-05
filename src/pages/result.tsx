@@ -1,25 +1,21 @@
-import next, { GetServerSideProps, GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
+import next, {
+  GetServerSideProps,
+  GetServerSidePropsContext,
+  InferGetServerSidePropsType,
+} from "next";
 import Layout from "../../components/layout";
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/router";
-
-// type ApiCountResponse = {
-//   continue_round: true
-//   message: string
-//   next_game_type: number
-//   vote_result: []
-//   winner: string
-// };
 
 interface Game {
   id: number;
   code: string;
   round: number;
   player_id: number;
-  player : {
+  player: {
     id: number;
     username: string;
-  },
+  };
   game_type_id: number;
   hand_choice: string;
   created_at: string;
@@ -30,8 +26,8 @@ interface Result {
   code: string;
   hand_choice: string;
   round: number;
-  winner_player : Player[];
-  looser_player : Player[];
+  winner_player: Player[];
+  looser_player: Player[];
 }
 
 interface Player {
@@ -39,26 +35,21 @@ interface Player {
   username: string;
 }
 
-type ApiNextRoundResponse = {
-	data : Game[]
-}
-
-export const getServerSideProps = (async (
+export const getServerSideProps = async (
   context: GetServerSidePropsContext
 ) => {
-	const code = context.query.code;
+  const code = context.query.code;
 
-	return {
-    props: {code},
+  return {
+    props: { code },
   };
-});
+};
 
 export default function Result({
   code,
 }: InferGetServerSidePropsType<typeof getServerSideProps> & { code: string }) {
   const router = useRouter();
   const [playerLogin, setPlayerLogin] = useState({ id: 0, username: "" });
-  const [nextPlayer, setNextPlayer] = useState<Game[]>([]);
   const [result, setResult] = useState<Result>();
   const [isPlayerWon, setIsPlayerWon] = useState(false);
 
@@ -77,37 +68,6 @@ export default function Result({
     }
     checkLoginPlayer();
 
-    async function gameInfo() {
-      const res = await fetch(process.env.API_URL + "/game/info/" + code, {
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.message);
-        router.push("/lobby?code=" + code);
-      } else {
-        // TODO: is game info needed?
-        console.log(data);
-      }
-    }
-    gameInfo();
-
-    async function checkNextRound() {
-      const res = await fetch(process.env.API_URL + "/game/"+ code +"?round=next", {
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.message);
-        return;
-        // router.push("/lobby?code=" + code);
-      } else {
-        setNextPlayer(data.data);
-        console.log(data);
-      }
-    }
-    checkNextRound();
-
     async function gameResult() {
       const res = await fetch(process.env.API_URL + "/result/" + code, {
         credentials: "include",
@@ -120,12 +80,18 @@ export default function Result({
         console.log(data);
       }
     }
-    gameResult()
+    gameResult();
   }, [code, router]);
 
   useEffect(() => {
-    const isPlayerWon = (result?.winner_player?.find((item) => item.id == Number(playerLogin.id))) != undefined;
-    const isPlayerLoose = (result?.looser_player?.find((item) => item.id == Number(playerLogin.id))) != undefined;
+    const isPlayerWon =
+      result?.winner_player?.find(
+        (item) => item.id == Number(playerLogin.id)
+      ) != undefined;
+    const isPlayerLoose =
+      result?.looser_player?.find(
+        (item) => item.id == Number(playerLogin.id)
+      ) != undefined;
     if (isPlayerWon && !isPlayerLoose) setIsPlayerWon(isPlayerWon);
     setIsPlayerWon(isPlayerWon);
   }, [result, playerLogin]);
@@ -138,9 +104,9 @@ export default function Result({
       {!isPlayerWon && <p>Sorry, you will not join next round</p>}
       <br />
       <p>Next Player :</p>
-			{result?.winner_player?.map((item) => (
-				<p key={item.id}>{item.username}</p>
-			))}
+      {result?.winner_player?.map((item) => (
+        <p key={item.id}>{item.username}</p>
+      ))}
 
       {isPlayerWon && <p>Round will start in 5 seconds ...</p>}
     </Layout>

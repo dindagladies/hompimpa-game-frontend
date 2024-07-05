@@ -2,7 +2,11 @@ import Head from "next/head";
 import Layout from "../../components/layout";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import { GetServerSideProps, GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
+import {
+  GetServerSideProps,
+  GetServerSidePropsContext,
+  InferGetServerSidePropsType,
+} from "next";
 
 interface Game {
   code: string;
@@ -67,7 +71,7 @@ export default function Lobby({
       const data = await res.json();
       if (!res.ok) {
         alert(data.message);
-        router.push("/menu")
+        router.push("/menu");
       } else {
         setHost(data.data.host_id);
       }
@@ -97,7 +101,7 @@ export default function Lobby({
           playerLogin.id + " " + playerLogin.username
         );
         if (ws.current) {
-          console.log("send ws : ", code, playerLogin.id, playerLogin.username)
+          console.log("send ws : ", code, playerLogin.id, playerLogin.username);
           ws.current.send(
             JSON.stringify({
               code: code,
@@ -165,7 +169,7 @@ export default function Lobby({
   }
 
   async function startGame() {
-    // TODO: update started_at in game table
+    // update started_at in game table
     const res = await fetch(process.env.API_URL + "/game/info/" + code, {
       method: "POST",
     });
@@ -183,13 +187,12 @@ export default function Lobby({
             id: Number(playerLogin.id),
             username: playerLogin.username,
           },
-          start_at : data.data.started_at,
+          start_at: data.data.started_at,
         })
       );
-      // return () => {
-      // TODO: check this, not testing yet
+
       router.push("/game?code=" + code);
-    }else {
+    } else {
       alert(data.message);
       return;
     }
