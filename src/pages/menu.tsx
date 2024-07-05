@@ -22,7 +22,7 @@ export default function Menu() {
     }
 
     checkLoginPlayer();
-  }, []);
+  }, [router]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

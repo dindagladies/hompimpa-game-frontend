@@ -1,21 +1,15 @@
 import next, { GetServerSideProps, GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
 import Layout from "../../components/layout";
-import Link from "next/link";
+import { use, useEffect, useState } from "react";
+import { useRouter } from "next/router";
 
-// TODO:
-/*
-1. check if all player already submit a vote
-2. count the vote
-3. show in this
-*/
-
-type ApiCountResponse = {
-  continue_round: true
-  message: string
-  next_game_type: number
-  vote_result: []
-  winner: string
-};
+// type ApiCountResponse = {
+//   continue_round: true
+//   message: string
+//   next_game_type: number
+//   vote_result: []
+//   winner: string
+// };
 
 interface Game {
   id: number;
@@ -31,6 +25,20 @@ interface Game {
   created_at: string;
 }
 
+interface Result {
+  id: number;
+  code: string;
+  hand_choice: string;
+  round: number;
+  winner_player : Player[];
+  looser_player : Player[];
+}
+
+interface Player {
+  id: number;
+  username: string;
+}
+
 type ApiNextRoundResponse = {
 	data : Game[]
 }
@@ -39,38 +47,102 @@ export const getServerSideProps = (async (
   context: GetServerSidePropsContext
 ) => {
 	const code = context.query.code;
-  const countRes = await fetch("http://127.0.0.1.:4000/api/count/"+ code);
-  const result: ApiCountResponse = await countRes.json();
-
-	const nextRes = await fetch(process.env.API_URL + "/game/"+ code +"?round=next");
-	const nextData: ApiNextRoundResponse = await nextRes.json();
-
 
 	return {
-    props: {result, nextData, code},
+    props: {code},
   };
-}) satisfies GetServerSideProps<{ result: ApiCountResponse, nextData: ApiNextRoundResponse }>;
+});
 
 export default function Result({
   code,
-	result,
-	nextData,
-}: InferGetServerSidePropsType<typeof getServerSideProps> & { result: ApiCountResponse, nextData: ApiNextRoundResponse
-}) {
-  const playerId = localStorage.getItem("player_id");
-  const isPlayerContinueTheGame = (nextData.data.find((item) => item.player.id == Number(playerId))) != undefined;
-  console.log(isPlayerContinueTheGame);
-  console.log(playerId);
+}: InferGetServerSidePropsType<typeof getServerSideProps> & { code: string }) {
+  const router = useRouter();
+  const [playerLogin, setPlayerLogin] = useState({ id: 0, username: "" });
+  const [nextPlayer, setNextPlayer] = useState<Game[]>([]);
+  const [result, setResult] = useState<Result>();
+  const [isPlayerWon, setIsPlayerWon] = useState(false);
+
+  useEffect(() => {
+    async function checkLoginPlayer() {
+      const res = await fetch(process.env.API_URL + "/player", {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message);
+        router.push("/");
+      } else {
+        setPlayerLogin(data);
+      }
+    }
+    checkLoginPlayer();
+
+    async function gameInfo() {
+      const res = await fetch(process.env.API_URL + "/game/info/" + code, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message);
+        router.push("/lobby?code=" + code);
+      } else {
+        // TODO: is game info needed?
+        console.log(data);
+      }
+    }
+    gameInfo();
+
+    async function checkNextRound() {
+      const res = await fetch(process.env.API_URL + "/game/"+ code +"?round=next", {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message);
+        return;
+        // router.push("/lobby?code=" + code);
+      } else {
+        setNextPlayer(data.data);
+        console.log(data);
+      }
+    }
+    checkNextRound();
+
+    async function gameResult() {
+      const res = await fetch(process.env.API_URL + "/result/" + code, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message);
+      } else {
+        setResult(data.data);
+        console.log(data);
+      }
+    }
+    gameResult()
+  }, [code, router]);
+
+  useEffect(() => {
+    const isPlayerWon = (result?.winner_player?.find((item) => item.id == Number(playerLogin.id))) != undefined;
+    const isPlayerLoose = (result?.looser_player?.find((item) => item.id == Number(playerLogin.id))) != undefined;
+    if (isPlayerWon && !isPlayerLoose) setIsPlayerWon(isPlayerWon);
+    setIsPlayerWon(isPlayerWon);
+  }, [result, playerLogin]);
 
   return (
     <Layout>
-      <h1>The winner is {result?.winner}</h1>
+      <p>Hi, {playerLogin.username}</p>
+      <h1>The winner is {result?.hand_choice} </h1>
+      {isPlayerWon && <p>Congratulation! you will join next round</p>}
+      {!isPlayerWon && <p>Sorry, you will not join next round</p>}
+      <br />
       <p>Next Player :</p>
-			{nextData?.data?.map((item) => (
-				<p>{item.player.username}</p>
+			{result?.winner_player?.map((item) => (
+				<p key={item.id}>{item.username}</p>
 			))}
-      <p>Next Round will start in 5 seconds ...</p>
-      {isPlayerContinueTheGame ? <Link href={"/game?code="+ code}>Next</Link> : <p>Game over</p>}
+
+      {isPlayerWon && <p>Round will start in 5 seconds ...</p>}
     </Layout>
   );
 }

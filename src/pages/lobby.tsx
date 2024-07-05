@@ -1,9 +1,8 @@
 import Head from "next/head";
 import Layout from "../../components/layout";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import { start } from "repl";
+import { GetServerSideProps, GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
 
 interface Game {
   code: string;
@@ -13,11 +12,21 @@ interface Game {
   };
 }
 
-export default function Lobby() {
+export const getServerSideProps = (async (
+  context: GetServerSidePropsContext
+) => {
+  const code = context.query.code;
+  return {
+    props: { code },
+  };
+}) satisfies GetServerSideProps<{}>;
+
+export default function Lobby({
+  code,
+}: InferGetServerSidePropsType<typeof getServerSideProps> & { code: string }) {
   const [dataPlayers, setData] = useState<Game[]>([]);
   const [playerLogin, setPlayerLogin] = useState({ id: 0, username: "" });
   const router = useRouter();
-  const code = router.query.code;
   const [host, setHost] = useState(null);
 
   useEffect(() => {
@@ -52,7 +61,7 @@ export default function Lobby() {
 
     async function getGameHost() {
       const res = await fetch(process.env.API_URL + "/game/info/" + code, {
-        credentials: "include",
+        // credentials: "include",
       });
 
       const data = await res.json();
@@ -78,6 +87,7 @@ export default function Lobby() {
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    console.log("code di lobby : ", code);
     if (playerLogin.id !== 0 && playerLogin.username !== "") {
       ws.current = new WebSocket("ws://127.0.0.1:4000/ws");
       ws.current.onerror = (err) => console.log(err);
@@ -87,6 +97,7 @@ export default function Lobby() {
           playerLogin.id + " " + playerLogin.username
         );
         if (ws.current) {
+          console.log("send ws : ", code, playerLogin.id, playerLogin.username)
           ws.current.send(
             JSON.stringify({
               code: code,
@@ -160,14 +171,12 @@ export default function Lobby() {
     });
 
     const data = await res.json();
-    if (!res.ok) {
-      alert(data.message);
-      return;
-    }
 
-    if (ws.current) {
+    if (res.ok && ws.current) {
+      console.log("send ws : start game");
       ws.current.send(
         JSON.stringify({
+          action: "start",
           code: code,
           player_id: Number(playerLogin.id),
           player: {
@@ -175,12 +184,14 @@ export default function Lobby() {
             username: playerLogin.username,
           },
           start_at : data.data.started_at,
-          action: "start",
         })
       );
       // return () => {
       // TODO: check this, not testing yet
       router.push("/game?code=" + code);
+    }else {
+      alert(data.message);
+      return;
     }
     // };
   }

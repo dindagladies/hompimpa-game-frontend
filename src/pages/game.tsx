@@ -1,21 +1,25 @@
 import Layout from "../../components/layout";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { GetServerSideProps, GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
+import {
+  GetServerSideProps,
+  GetServerSidePropsContext,
+  InferGetServerSidePropsType,
+} from "next";
 
-export const getServerSideProps = (async (context : GetServerSidePropsContext) => {
-  const code = context.query.code
+export const getServerSideProps = (async (
+  context: GetServerSidePropsContext
+) => {
+  const code = context.query.code;
   return {
-    props: {code},
-  }
+    props: { code },
+  };
 }) satisfies GetServerSideProps<{}>;
 
 export default function Game({
   code,
-}: InferGetServerSidePropsType<typeof getServerSideProps> & { code: string}) {
+}: InferGetServerSidePropsType<typeof getServerSideProps> & { code: string }) {
   const router = useRouter();
-  // const code = router.query.code;
-  // TODO: change code to getServerSideProps
   const [playerLogin, setPlayerLogin] = useState({ id: 0, username: "" });
   const [start, setStart] = useState(null);
   const [countdown, setCountdown] = useState(30);
@@ -48,7 +52,6 @@ export default function Game({
         console.log(data);
       }
     }
-    console.log(router.query.code);
     gameInfo();
   }, [code, router]);
 
