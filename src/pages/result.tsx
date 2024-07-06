@@ -1,10 +1,9 @@
 import next, {
-  GetServerSideProps,
   GetServerSidePropsContext,
   InferGetServerSidePropsType,
 } from "next";
 import Layout from "../../components/layout";
-import { use, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 
 interface Game {
@@ -35,6 +34,12 @@ interface Player {
   username: string;
 }
 
+interface GameInfo {
+  id: number;
+  code: string;
+  is_finished: boolean;
+}
+
 export const getServerSideProps = async (
   context: GetServerSidePropsContext
 ) => {
@@ -52,6 +57,8 @@ export default function Result({
   const [playerLogin, setPlayerLogin] = useState({ id: 0, username: "" });
   const [result, setResult] = useState<Result>();
   const [isPlayerWon, setIsPlayerWon] = useState(false);
+  const [countdown, setCountdown] = useState(10);
+  const [gameInfo, setGameInfo]  = useState<GameInfo>();
 
   useEffect(() => {
     async function checkLoginPlayer() {
@@ -67,6 +74,21 @@ export default function Result({
       }
     }
     checkLoginPlayer();
+
+    async function gameInfo() {
+      const res = await fetch(process.env.API_URL + "/game/info/" + code, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message);
+        router.push("/lobby?code=" + code);
+      } else {
+        setGameInfo(data.data);
+        console.log(data);
+      }
+    }
+    gameInfo();
 
     async function gameResult() {
       const res = await fetch(process.env.API_URL + "/result/" + code, {
@@ -96,6 +118,86 @@ export default function Result({
     setIsPlayerWon(isPlayerWon);
   }, [result, playerLogin]);
 
+  const ws = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    console.log("code di lobby : ", code);
+    if (playerLogin.id !== 0 && playerLogin.username !== "") {
+      ws.current = new WebSocket("ws://127.0.0.1:4000/ws");
+      ws.current.onerror = (err) => console.log(err);
+      ws.current.onopen = () => {
+        console.log(
+          "connected player : ",
+          playerLogin.id + " " + playerLogin.username
+        );
+      };
+      ws.current.onmessage = (msg) => {
+        const message = JSON.parse(msg.data);
+        console.log("message from ws : ", message);
+        if (message.action === "start") {
+          if (message.player.id == Number(playerLogin.id)) {
+            router.push("/game?code=" + code);
+          }
+        }
+      };
+
+      return () => {
+        if (ws.current) {
+          ws.current.close();
+        }
+      };
+    }
+  }, [playerLogin, code, router]);
+
+  useEffect(() => {
+    async function nextGame() {
+      // update started_at in game table
+      const res = await fetch(process.env.API_URL + "/game/info/" + code, {
+        method: "POST",
+      });
+
+      const data = await res.json();
+
+      if (res.ok && ws.current) {
+        console.log("send ws : start game");
+        ws.current.send(
+          JSON.stringify({
+            action: "start",
+            code: code,
+            player_id: Number(playerLogin.id),
+            player: {
+              id: Number(playerLogin.id),
+              username: playerLogin.username,
+            },
+            start_at: data.data.started_at,
+          })
+        );
+
+        router.push("/game?code=" + code);
+      } else {
+        alert(data.message);
+        return;
+      }
+      // };
+    }
+
+    // TODO: check if continue the game
+    if (countdown == 0 && isPlayerWon && (gameInfo?.is_finished == false)) {
+      setCountdown(0);
+      nextGame();
+      router.push("/game?code=" + code);
+    }
+
+    const interval = setInterval(() => {
+      if (countdown > 0) {
+        setCountdown(countdown - 1);
+      }else {
+        setCountdown(0);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [countdown, code, router, playerLogin, isPlayerWon, gameInfo]);
+
   return (
     <Layout>
       <p>Hi, {playerLogin.username}</p>
@@ -108,7 +210,7 @@ export default function Result({
         <p key={item.id}>{item.username}</p>
       ))}
 
-      {isPlayerWon && <p>Round will start in 5 seconds ...</p>}
+      {isPlayerWon && <b>Round will start in {countdown} seconds ...</b>}
     </Layout>
   );
 }

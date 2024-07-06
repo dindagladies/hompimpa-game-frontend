@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Layout from "../../components/layout";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -44,6 +43,26 @@ export default function WaitingRoom() {
   }, [code, router]);
 
   // TODO: is countdown is stil needed?
+
+  const ws = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    ws.current = new WebSocket("ws://127.0.0.1:4000/ws");
+    ws.current.onopen = () => {
+      console.log(
+        "connected player : ",
+        playerLogin.id + " " + playerLogin.username
+      );
+    };
+    ws.current.onmessage = (msg) => {
+      const message = JSON.parse(msg.data);
+      console.log("message from ws : ", message);
+      if (message.action === "result" && message.code === code) {
+        router.push("/result?code=" + code);
+      }
+    };
+  }, [playerLogin, code, router]);
+
   useEffect(() => {
     if (start === null) return;
     const startedAt = new Date(start).getTime();
@@ -56,6 +75,14 @@ export default function WaitingRoom() {
       if (!res.ok) {
         alert(data.message);
       } else {
+        if (ws.current) {
+          ws.current.send(
+            JSON.stringify({
+              action: "result",
+              code: code,
+            })
+          );
+        }
         router.push("/result?code=" + code);
       }
     }
@@ -64,47 +91,19 @@ export default function WaitingRoom() {
       if (countdown !== 0) {
         const newDate = new Date().getTime();
         var diff = (newDate - startedAt) / 1000;
-        var time = 15 - diff;
+        var time = 30 - diff;
         var count = parseInt(time.toString().split(".")[0]);
         setCountdown(count);
         if (count <= 0) {
           setCountdown(0);
           if (playerLogin.id === host) {
             countingResult();
-          } else {
-            router.push("/result?code=" + code);
           }
         }
       }
     }, 1000);
     return () => clearInterval(interval);
   }, [countdown, start, host, router, code, playerLogin]);
-
-  const ws = useRef<WebSocket | null>(null);
-  useEffect(() => {
-    ws.current = new WebSocket("ws://localhost:4000/ws");
-    ws.current.onerror = (err) => console.log(err);
-    ws.current.onopen = () => {
-      console.log(
-        "connected player : ",
-        playerLogin.id + " " + playerLogin.username
-      );
-    };
-    ws.current.onmessage = (msg) => {
-      const message = JSON.parse(msg.data);
-      console.log("message from ws : ", message);
-      if (message.code !== code) return;
-      if (message.action === "result") {
-        router.push("/result?code=" + code);
-      }
-    };
-
-    return () => {
-      if (ws.current) {
-        ws.current.close();
-      }
-    }
-  });
 
   return (
     <Layout>
