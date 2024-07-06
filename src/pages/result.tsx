@@ -27,6 +27,7 @@ interface Result {
   round: number;
   winner_player: Player[];
   looser_player: Player[];
+  winner_player_total: number;
 }
 
 interface Player {
@@ -58,7 +59,7 @@ export default function Result({
   const [result, setResult] = useState<Result>();
   const [isPlayerWon, setIsPlayerWon] = useState(false);
   const [countdown, setCountdown] = useState(10);
-  const [gameInfo, setGameInfo]  = useState<GameInfo>();
+  const [gameInfo, setGameInfo] = useState<GameInfo>();
 
   useEffect(() => {
     async function checkLoginPlayer() {
@@ -136,7 +137,11 @@ export default function Result({
         console.log("message from ws : ", message);
         if (message.action === "start") {
           if (message.player.id == Number(playerLogin.id)) {
-            router.push("/game?code=" + code);
+            if (result?.winner_player_total == 2) {
+              router.push("/game-v2?code=" + code);
+            } else {
+              router.push("/game?code=" + code);
+            }
           }
         }
       };
@@ -147,7 +152,7 @@ export default function Result({
         }
       };
     }
-  }, [playerLogin, code, router]);
+  }, [playerLogin, code, router, result]);
 
   useEffect(() => {
     async function nextGame() {
@@ -173,7 +178,11 @@ export default function Result({
           })
         );
 
-        router.push("/game?code=" + code);
+        if (result?.winner_player_total == 2) {
+          router.push("/game-v2?code=" + code);
+        } else {
+          router.push("/game?code=" + code);
+        }
       } else {
         alert(data.message);
         return;
@@ -182,35 +191,49 @@ export default function Result({
     }
 
     // TODO: check if continue the game
-    if (countdown == 0 && isPlayerWon && (gameInfo?.is_finished == false)) {
+    if (countdown == 0 && isPlayerWon && gameInfo?.is_finished == false) {
       setCountdown(0);
       nextGame();
-      router.push("/game?code=" + code);
+      if (result?.winner_player_total == 2) {
+        router.push("/game-v2?code=" + code);
+      } else {
+        router.push("/game?code=" + code);
+      }
     }
 
     const interval = setInterval(() => {
       if (countdown > 0) {
         setCountdown(countdown - 1);
-      }else {
+      } else {
         setCountdown(0);
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [countdown, code, router, playerLogin, isPlayerWon, gameInfo]);
+  }, [countdown, code, router, playerLogin, isPlayerWon, gameInfo, result]);
 
   return (
     <Layout>
       <p>Hi, {playerLogin.username}</p>
-      <h1>The winner is {result?.hand_choice} </h1>
-      {isPlayerWon && <p>Congratulation! you will join next round</p>}
-      {!isPlayerWon && <p>Sorry, you will not join next round</p>}
-      <br />
-      <p>Next Player :</p>
-      {result?.winner_player?.map((item) => (
-        <p key={item.id}>{item.username}</p>
-      ))}
-
-      {isPlayerWon && <b>Round will start in {countdown} seconds ...</b>}
+      {gameInfo?.is_finished == false && (
+        <div>
+          <h1>The winner is {result?.hand_choice} </h1>
+          {isPlayerWon && <p>Congratulation! you will join next round</p>}
+          {!isPlayerWon && <p>Sorry, you will not join next round</p>}
+          <br />
+          <p>Next Player :</p>
+          {result?.winner_player?.map((item) => (
+            <p key={item.id}>{item.username}</p>
+          ))}
+          {isPlayerWon && <b>Round will start in {countdown} seconds ...</b>}
+        </div>
+      )}
+      {gameInfo?.is_finished == true && (
+        <div>
+          <h1>The winner is {result?.hand_choice}</h1>
+          {isPlayerWon && <p>Congratulation! you are the winner!</p>}
+          {!isPlayerWon && <p>Sorry, you lose</p>}
+        </div>
+      )}
     </Layout>
   );
 }

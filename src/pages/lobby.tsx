@@ -191,6 +191,7 @@ export default function Lobby({
         })
       );
 
+      // TODO: if player only 2 player
       router.push("/game?code=" + code);
     } else {
       alert(data.message);

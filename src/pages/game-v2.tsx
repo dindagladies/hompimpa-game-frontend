@@ -101,8 +101,9 @@ export default function Game({
   return (
     <Layout>
       What is your choose ? <br />
-      <button onClick={() => insertVote("light")}>Light</button> &nbsp;
-      <button onClick={() => insertVote("dark")}>Dark</button>
+      <button onClick={() => insertVote("rock")}>Rock</button> &nbsp;
+      <button onClick={() => insertVote("scissors")}>Scissors</button> &nbsp;
+      <button onClick={() => insertVote("paper")}>Paper</button>
       <p>{countdown}</p>
     </Layout>
   );
