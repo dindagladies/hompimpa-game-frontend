@@ -216,7 +216,7 @@ export default function Result({
       <p>Hi, {playerLogin.username}</p>
       {gameInfo?.is_finished == false && (
         <div>
-          <h1>The winner is {result?.hand_choice} </h1>
+          <h1>{result?.hand_choice != "DRAW" && <p>The winner is</p>} {result?.hand_choice} </h1>
           {isPlayerWon && <p>Congratulation! you will join next round</p>}
           {!isPlayerWon && <p>Sorry, you will not join next round</p>}
           <br />
