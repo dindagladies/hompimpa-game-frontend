@@ -1,10 +1,25 @@
+import {
+  GetServerSideProps,
+  GetServerSidePropsContext,
+  InferGetServerSidePropsType,
+} from "next";
 import Layout from "../../components/layout";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 
-export default function WaitingRoom() {
+export const getServerSideProps = (async (
+  context: GetServerSidePropsContext
+) => {
+  const code = context.query.code;
+  return {
+    props: { code },
+  };
+}) satisfies GetServerSideProps<{}>;
+
+export default function WaitingRoom({
+  code,
+}: InferGetServerSidePropsType<typeof getServerSideProps> & { code: string }) {
   const router = useRouter();
-  const code = router.query.code;
   const [playerLogin, setPlayerLogin] = useState({ id: 0, username: "" });
   const [start, setStart] = useState(null);
   const [host, setHost] = useState(null);
@@ -56,6 +71,7 @@ export default function WaitingRoom() {
     };
     ws.current.onmessage = (msg) => {
       const message = JSON.parse(msg.data);
+      console.log("=== in waiting room to redirect to results page ===");
       console.log("message from ws : ", message);
       if (message.action === "result" && message.code === code) {
         router.push("/result?code=" + code);
@@ -75,7 +91,10 @@ export default function WaitingRoom() {
       if (!res.ok) {
         alert(data.message);
       } else {
+        console.log("=== counting result ===");
+        console.log(data);
         if (ws.current) {
+          console.log("=== send result from waiting room ===");
           ws.current.send(
             JSON.stringify({
               action: "result",
@@ -96,6 +115,7 @@ export default function WaitingRoom() {
         setCountdown(count);
         if (count <= 0) {
           setCountdown(0);
+          console.log("=== waiting room :  host = ", host);
           if (playerLogin.id === host) {
             countingResult();
           }
@@ -109,7 +129,6 @@ export default function WaitingRoom() {
     <Layout>
       <p>{playerLogin.username}</p>
       <h2>Waiting other player.. {countdown}</h2>
-      {/* <Link href={"/result?code=" + code}>Next</Link> */}
     </Layout>
   );
 }

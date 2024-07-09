@@ -5,20 +5,7 @@ import next, {
 import Layout from "../../components/layout";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
-
-interface Game {
-  id: number;
-  code: string;
-  round: number;
-  player_id: number;
-  player: {
-    id: number;
-    username: string;
-  };
-  game_type_id: number;
-  hand_choice: string;
-  created_at: string;
-}
+import Link from "next/link";
 
 interface Result {
   id: number;
@@ -27,7 +14,6 @@ interface Result {
   round: number;
   winner_player: Player[];
   looser_player: Player[];
-  winner_player_total: number;
 }
 
 interface Player {
@@ -122,7 +108,6 @@ export default function Result({
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    console.log("code di lobby : ", code);
     if (playerLogin.id !== 0 && playerLogin.username !== "") {
       ws.current = new WebSocket("ws://127.0.0.1:4000/ws");
       ws.current.onerror = (err) => console.log(err);
@@ -134,14 +119,11 @@ export default function Result({
       };
       ws.current.onmessage = (msg) => {
         const message = JSON.parse(msg.data);
+        console.log("=== in result to redirect next game ===");
         console.log("message from ws : ", message);
         if (message.action === "start") {
           if (message.player.id == Number(playerLogin.id)) {
-            if (result?.winner_player_total == 2) {
-              router.push("/game-v2?code=" + code);
-            } else {
-              router.push("/game?code=" + code);
-            }
+            router.push("/game?code=" + code);
           }
         }
       };
@@ -164,7 +146,7 @@ export default function Result({
       const data = await res.json();
 
       if (res.ok && ws.current) {
-        console.log("send ws : start game");
+        console.log("=== send start game from results page ===");
         ws.current.send(
           JSON.stringify({
             action: "start",
@@ -177,12 +159,7 @@ export default function Result({
             start_at: data.data.started_at,
           })
         );
-
-        if (result?.winner_player_total == 2) {
-          router.push("/game-v2?code=" + code);
-        } else {
-          router.push("/game?code=" + code);
-        }
+        router.push("/game?code=" + code);
       } else {
         alert(data.message);
         return;
@@ -194,11 +171,7 @@ export default function Result({
     if (countdown == 0 && isPlayerWon && gameInfo?.is_finished == false) {
       setCountdown(0);
       nextGame();
-      if (result?.winner_player_total == 2) {
-        router.push("/game-v2?code=" + code);
-      } else {
-        router.push("/game?code=" + code);
-      }
+      router.push("/game?code=" + code);
     }
 
     const interval = setInterval(() => {
@@ -216,9 +189,17 @@ export default function Result({
       <p>Hi, {playerLogin.username}</p>
       {gameInfo?.is_finished == false && (
         <div>
-          <h1>{result?.hand_choice != "DRAW" && <p>The winner is</p>} {result?.hand_choice} </h1>
+          <h1>
+            {result?.hand_choice != "DRAW" && <p>The winner is</p>}{" "}
+            {result?.hand_choice}{" "}
+          </h1>
           {isPlayerWon && <p>Congratulation! you will join next round</p>}
-          {!isPlayerWon && <p>Sorry, you will not join next round</p>}
+          {!isPlayerWon && (
+            <p>
+              Sorry, you will not join next round <br />{" "}
+              <Link href="/menu">Back to menu</Link>
+            </p>
+          )}
           <br />
           <p>Next Player :</p>
           {result?.winner_player?.map((item) => (
@@ -232,6 +213,7 @@ export default function Result({
           <h1>The winner is {result?.hand_choice}</h1>
           {isPlayerWon && <p>Congratulation! you are the winner!</p>}
           {!isPlayerWon && <p>Sorry, you lose</p>}
+          <Link href="/menu">Back to menu</Link>
         </div>
       )}
     </Layout>

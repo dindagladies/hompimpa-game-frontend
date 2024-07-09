@@ -22,7 +22,9 @@ export default function Game({
   const router = useRouter();
   const [playerLogin, setPlayerLogin] = useState({ id: 0, username: "" });
   const [start, setStart] = useState(null);
+  const [totalPlayer, setTotalPlayer] = useState(0);
   const [countdown, setCountdown] = useState(30);
+  const [submitStatus, setSubmitStatus] = useState(false);
 
   useEffect(() => {
     async function checkLoginPlayer() {
@@ -49,6 +51,7 @@ export default function Game({
         router.push("/lobby?code=" + code);
       } else {
         setStart(data.data.started_at);
+        setTotalPlayer(data.data.active_player);
         console.log(data);
       }
     }
@@ -68,12 +71,15 @@ export default function Game({
         setCountdown(count);
         if (count <= 0) {
           setCountdown(0);
+          if (!submitStatus) {
+            insertVote("");
+          }
           router.push("/waiting-room?code=" + code);
         }
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [countdown, start, router, code]);
+  }, [countdown, start, router, code, submitStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function insertVote(hand_choice: string) {
     const response = await fetch(
@@ -94,16 +100,34 @@ export default function Game({
     if (!response.ok) {
       alert(data.message);
       return;
+    } else {
+      setSubmitStatus(true);
+      router.push("/waiting-room?code=" + code);
     }
-    router.push("/waiting-room?code=" + code);
   }
 
-  return (
-    <Layout>
-      What is your choose ? <br />
-      <button onClick={() => insertVote("light")}>Light</button> &nbsp;
-      <button onClick={() => insertVote("dark")}>Dark</button>
-      <p>{countdown}</p>
-    </Layout>
-  );
+  function GameMultiPlayer() {
+    return (
+      <Layout>
+        What is your choose ? <br />
+        <button onClick={() => insertVote("light")}>Light</button> &nbsp;
+        <button onClick={() => insertVote("dark")}>Dark</button>
+        <p>{countdown}</p>
+      </Layout>
+    );
+  }
+
+  function GameTwoPlayer() {
+    return (
+      <Layout>
+        What is your choose ? <br />
+        <button onClick={() => insertVote("rock")}>Rock</button> &nbsp;
+        <button onClick={() => insertVote("scissors")}>Scissors</button> &nbsp;
+        <button onClick={() => insertVote("paper")}>Paper</button>
+        <p>{countdown}</p>
+      </Layout>
+    );
+  }
+
+  return <>{totalPlayer > 2 ? <GameMultiPlayer /> : <GameTwoPlayer />}</>;
 }

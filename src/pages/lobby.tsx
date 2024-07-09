@@ -32,6 +32,7 @@ export default function Lobby({
   const [playerLogin, setPlayerLogin] = useState({ id: 0, username: "" });
   const router = useRouter();
   const [host, setHost] = useState(null);
+  const [totalPlayer, setTotalPlayer] = useState(0);
 
   useEffect(() => {
     async function checkLoginPlayer() {
@@ -59,6 +60,7 @@ export default function Lobby({
         router.push("/menu");
       } else {
         setData(data.data);
+        setTotalPlayer(data.data.length);
       }
     }
     getPlayerOnGame();
@@ -86,7 +88,7 @@ export default function Lobby({
     //   exitGame();
     // };
     console.log("host: ", host);
-  }, [dataPlayers, host]);
+  }, [dataPlayers, host, totalPlayer]);
 
   const ws = useRef<WebSocket | null>(null);
 
@@ -124,10 +126,12 @@ export default function Lobby({
                 (item) => item.player.id !== message.player.id
               )
             );
+            setTotalPlayer((prevTotalPlayer) => prevTotalPlayer - 1);
           } else if (message.action === "start") {
             router.push("/game?code=" + code);
           } else {
             setData((prevDataPlayers) => [...prevDataPlayers, message]);
+            setTotalPlayer((prevTotalPlayer) => prevTotalPlayer + 1);
           }
         }
       };
@@ -169,7 +173,12 @@ export default function Lobby({
   }
 
   async function startGame() {
-    // update started_at in game table
+    if (totalPlayer < 2) {
+      alert("Minimum player is 2");
+      return;
+    }
+
+    /* update started_at in game table */
     const res = await fetch(process.env.API_URL + "/game/info/" + code, {
       method: "POST",
     });
@@ -191,7 +200,6 @@ export default function Lobby({
         })
       );
 
-      // TODO: if player only 2 player
       router.push("/game?code=" + code);
     } else {
       alert(data.message);
